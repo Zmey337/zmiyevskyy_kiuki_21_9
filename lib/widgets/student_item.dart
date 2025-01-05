@@ -4,7 +4,7 @@ import '../models/student.dart';
 class StudentItem extends StatelessWidget {
   final Student student;
 
-  const StudentItem({Key? key, required this.student}) : super(key: key);
+  const StudentItem({super.key, required this.student});
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +34,7 @@ class StudentItem extends StatelessWidget {
                 ? Colors.blue.shade100
                 : Colors.pink.shade100,
             child: Icon(
-              departmentIcons[student.department],
+              student.department.icon,
               size: 32,
               color: student.gender == Gender.male
                   ? Colors.blue.shade900

@@ -1,14 +1,6 @@
-import 'package:flutter/material.dart';
+import 'department.dart';
 
-enum Department { finance, law, it, medical }
 enum Gender { male, female }
-
-const Map<Department, IconData> departmentIcons = {
-  Department.finance: Icons.trending_up,
-  Department.law: Icons.balance,
-  Department.it: Icons.memory,
-  Department.medical: Icons.local_hospital,
-};
 
 class Student {
   final String firstName;
