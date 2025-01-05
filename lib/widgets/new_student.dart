@@ -1,62 +1,66 @@
 import 'package:flutter/material.dart';
 import '../models/student.dart';
 import '../models/department.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/students_provider.dart';
 
-class NewStudent extends StatefulWidget {
-  final void Function(Student) onSave;
-  final Student? existingStudent;
+class NewStudent extends ConsumerStatefulWidget {
+  const NewStudent({
+    super.key,
+    this.studentIndex
+  });
 
-  const NewStudent({Key? key, required this.onSave, this.existingStudent}) : super(key: key);
+  final int? studentIndex;
 
   @override
-  State<NewStudent> createState() => _NewStudentState();
+  ConsumerState<ConsumerStatefulWidget> createState() => _NewStudentState();
 }
 
-class _NewStudentState extends State<NewStudent> {
+class _NewStudentState extends ConsumerState<NewStudent> {
   final _nameController = TextEditingController();
   final _surnameController = TextEditingController();
   final _gradeController = TextEditingController();
-  late Department _selectedDepartment;
+  Department _selectedDepartment = departments[0];
   Gender? _selectedGender;
 
   @override
   void initState() {
     super.initState();
-    if (widget.existingStudent != null) {
-      final student = widget.existingStudent!;
+    if (widget.studentIndex != null) {
+      final student = ref.read(studentsProvider).students[widget.studentIndex!];
       _nameController.text = student.firstName;
       _surnameController.text = student.lastName;
-      _selectedDepartment = student.department;
       _gradeController.text = student.grade.toString();
       _selectedGender = student.gender;
-    } else {
-      _selectedDepartment = departments[0];
-      _gradeController.text = '0';
-      _selectedGender = null;
+      _selectedDepartment = student.department;
     }
   }
 
-  void _saveStudent() {
-    final grade = int.tryParse(_gradeController.text) ?? 0;
-    if (_selectedGender != null &&
-        _nameController.text.isNotEmpty &&
-        _surnameController.text.isNotEmpty) {
-      final newStudent = Student(
-        firstName: _nameController.text,
-        lastName: _surnameController.text,
-        department: _selectedDepartment,
-        grade: grade,
-        gender: _selectedGender!,
-      );
-      widget.onSave(newStudent);
-      if (Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      }
+  void _saveStudent() async {
+    if (_selectedDepartment == null || _selectedGender == null) return;
+
+    if (widget.studentIndex != null) {
+      await ref.read(studentsProvider.notifier).updateStudent(
+            widget.studentIndex!,
+            _nameController.text.trim(),
+            _surnameController.text.trim(),
+            _selectedDepartment,
+            _selectedGender,
+            int.tryParse(_gradeController.text) ?? 0,
+          );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
+      await ref.read(studentsProvider.notifier).addStudent(
+            _nameController.text.trim(),
+            _surnameController.text.trim(),
+            _selectedDepartment,
+            _selectedGender,
+            int.tryParse(_gradeController.text) ?? 0,
+          );
     }
+
+    if (!context.mounted) return;
+
+    Navigator.of(context).pop();
   }
 
   @override

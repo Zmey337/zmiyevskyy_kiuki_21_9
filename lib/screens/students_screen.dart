@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/student.dart';
 import '../providers/students_provider.dart';
 import '../widgets/student_item.dart';
 import '../widgets/new_student.dart';
@@ -13,37 +12,53 @@ class StudentsScreen extends ConsumerWidget {
     final students = ref.watch(studentsProvider);
     final studentsNotifier = ref.read(studentsProvider.notifier);
 
-    void addOrEditStudent(Student? existingStudent) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        builder: (ctx) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          child: NewStudent(
-            existingStudent: existingStudent,
-            onSave: (newStudent) {
-              if (existingStudent != null) {
-                studentsNotifier.updateStudent(existingStudent, newStudent);
-              } else {
-                studentsNotifier.addStudent(newStudent);
-              }
-              Navigator.of(ctx).pop();
-            },
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (students.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              students.errorMessage!,
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
           ),
-        ),
+        );
+      }
+    });
+
+    if (students.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
       );
+    } 
+
+    void addOrEditStudent({int? index}) {
+      showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: NewStudent(studentIndex: index),
+        );
+      },
+    );
     }
 
     return Scaffold(
       body: ListView.builder(
-        itemCount: students.length,
+        itemCount: students.students.length,
         itemBuilder: (context, index) {
-          final student = students[index];
+          final student = students.students[index];
           return Dismissible(
             key: ValueKey(student.firstName),
             direction: DismissDirection.endToStart,
             onDismissed: (_) {
-              studentsNotifier.removeStudent(student.firstName);
+              final container = ProviderScope.containerOf(context);
+              studentsNotifier.removeStudent(index);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('${student.firstName} removed'),
@@ -52,7 +67,11 @@ class StudentsScreen extends ConsumerWidget {
                     onPressed: studentsNotifier.undoRemove,
                   ),
                 ),
-              );
+              ).closed.then((value) {
+                if (value != SnackBarClosedReason.action) {
+                  container.read(studentsProvider.notifier).delete();
+                }
+              });
             },
             background: Container(
               decoration: BoxDecoration(
@@ -74,14 +93,14 @@ class StudentsScreen extends ConsumerWidget {
               ),
             ),
             child: InkWell(
-              onTap: () => addOrEditStudent(student),
+              onTap: () => addOrEditStudent(index: index),
               child: StudentItem(student: student),
             ),
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => addOrEditStudent(null),
+        onPressed: () => addOrEditStudent(),
         label: const Text("Add"),
         icon: const Icon(Icons.add),
         backgroundColor: Colors.teal,

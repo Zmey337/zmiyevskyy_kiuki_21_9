@@ -11,7 +11,7 @@ class DepartmentItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final students = ref.watch(studentsProvider);
-    final studentCount = students.where((student) => student.department == department).length;
+    final studentCount = students.students.where((student) => student.department == department).length;
 
     return Container(
       decoration: BoxDecoration(
